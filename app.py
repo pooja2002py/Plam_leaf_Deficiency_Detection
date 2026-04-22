@@ -58,7 +58,7 @@ st.markdown("<div class='sub-title'>AI Powered Crop Health Analysis using YOLOv8
 # -------------------------------
 @st.cache_resource
 def load_model():
-    return YOLO("C:\\mydesktop\\Final_OD\\object_detection\\run\\train-2\\weights\\best.pt")
+    return YOLO("best.pt")
 
 model = load_model()
 
