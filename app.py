@@ -58,7 +58,7 @@ st.markdown("<div class='sub-title'>AI Powered Crop Health Analysis using YOLOv8
 # -------------------------------
 @st.cache_resource
 def load_model():
-    return YOLO("best.pt")
+    return YOLO(".\best.pt")
 
 model = load_model()
 
