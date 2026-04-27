@@ -3,6 +3,8 @@ import cv2
 import streamlit as st
 from ultralytics import YOLO
 from PIL import Image
+import base64
+import os
 
 # -------------------------------
 # PAGE CONFIG
@@ -14,35 +16,119 @@ st.set_page_config(
 )
 
 # -------------------------------
-# UI DESIGN (UNCHANGED)
+# BACKGROUND IMAGE FUNCTION
+# -------------------------------
+def get_base64_image(image_path):
+    """Convert local image to base64 string"""
+    with open(image_path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+def set_background(image_path):
+    """Set background image from local file"""
+    if os.path.exists(image_path):
+        img_base64 = get_base64_image(image_path)
+        ext = os.path.splitext(image_path)[-1].lower().replace(".", "")
+        if ext == "jpg":
+            ext = "jpeg"
+        
+        st.markdown(f"""
+        <style>
+        .stApp {{
+            background-image: url("data:image/{ext};base64,{img_base64}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+        /* Dark overlay for readability */
+        .stApp::before {{
+            content: "";
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.60);
+            z-index: 0;
+        }}
+        /* Ensure content stays above overlay */
+        .main .block-container {{
+            position: relative;
+            z-index: 1;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        # Fallback: dark gradient if image not found
+        st.markdown("""
+        <style>
+        .stApp {
+            background: linear-gradient(120deg, #141e30, #243b55);
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+# ✅ SET YOUR BACKGROUND IMAGE PATH HERE
+# Place your agriculture image in the same folder as this script
+# Examples:
+#   set_background("agriculture.jpg")
+#   set_background("C:\\mydesktop\\Final_OD\\background\\agriculture.jpg")
+
+set_background("object_detection\Agriculture.jpg")   # <-- Change this to your image filename/path
+
+# -------------------------------
+# UI DESIGN
 # -------------------------------
 st.markdown("""
 <style>
-.stApp {
-    background:#000;
-    # background: linear-gradient(120deg, #141e30, #243b55);
-    color: #ffffff;
-}
 .main-title {
     text-align: center;
     font-size: 48px;
     font-weight: 700;
     color: #fff;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
 }
 .sub-title {
     text-align: center;
-    color: #cccccc;
+    color: #e0e0e0;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+    font-size: 18px;
+    margin-bottom: 20px;
 }
 .main-box {
-    background: rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.10);
     padding: 25px;
     border-radius: 20px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
 }
 .stButton>button {
     background: linear-gradient(90deg, #00e6b8, #00b3ff);
     color: black;
     border-radius: 10px;
     width: 100%;
+    font-weight: bold;
+}
+/* Make text readable on background */
+.stMarkdown, .stWrite, label, .stSelectbox label {
+    color: #ffffff !important;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+}
+/* Style info/warning/success boxes */
+.stAlert {
+    background: rgba(0,0,0,0.5) !important;
+    backdrop-filter: blur(5px);
+}
+/* Style file uploader */
+.stFileUploader {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 10px;
+}
+/* Selectbox styling */
+.stSelectbox > div > div {
+    background: rgba(255,255,255,0.15) !important;
+    color: white !important;
+    backdrop-filter: blur(5px);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -58,15 +144,14 @@ st.markdown("<div class='sub-title'>AI Powered Crop Health Analysis using YOLOv8
 # -------------------------------
 @st.cache_resource
 def load_model():
-    return YOLO("best.pt")
+    return YOLO("C:\\mydesktop\\Final_OD\\object_detection\\run\\train-2\\weights\\best.pt")
 
 model = load_model()
 
 # -------------------------------
-# DATA (UNCHANGED)
-# ------------------------------
+# DATA
+# -------------------------------
 deficiency_info = {
-
     "nitrogen": {
         "English": {
             "name": "Nitrogen Deficiency",
@@ -93,7 +178,6 @@ deficiency_info = {
                 "Avoid excessive watering"
             ]
         },
-
         "Marathi": {
             "name": "नायट्रोजन कमतरता",
             "description": [
@@ -107,7 +191,6 @@ deficiency_info = {
             "solution": ["युरिया वापरा", "सेंद्रिय खत वापरा"],
             "advice": ["माती तपासणी करा", "जास्त पाणी टाळा"]
         },
-
         "Telugu": {
             "name": "నైట్రోజన్ లోపం",
             "description": [
@@ -122,7 +205,6 @@ deficiency_info = {
             "advice": ["మట్టి పరీక్ష చేయండి", "అధిక నీరు నివారించండి"]
         }
     },
-
     "kalium": {
         "English": {
             "name": "Potassium (Kalium) Deficiency",
@@ -147,7 +229,6 @@ deficiency_info = {
                 "Maintain proper irrigation"
             ]
         },
-
         "Marathi": {
             "name": "पोटॅशियम कमतरता",
             "description": [
@@ -161,7 +242,6 @@ deficiency_info = {
             "solution": ["पोटॅश खत वापरा"],
             "advice": ["संतुलित खत वापरा"]
         },
-
         "Telugu": {
             "name": "పొటాషియం లోపం",
             "description": [
@@ -176,7 +256,6 @@ deficiency_info = {
             "advice": ["సమతుల్య ఎరువులు వాడండి"]
         }
     },
-
     "boron": {
         "English": {
             "name": "Boron Deficiency",
@@ -204,7 +283,6 @@ deficiency_info = {
                 "Monitor plant growth regularly"
             ]
         },
-
         "Marathi": {
             "name": "बोरॉन कमतरता",
             "description": [
@@ -218,7 +296,6 @@ deficiency_info = {
             "solution": ["बोरॉन स्प्रे वापरा"],
             "advice": ["जास्त पाणी टाळा"]
         },
-
         "Telugu": {
             "name": "బోరాన్ లోపం",
             "description": [
@@ -233,7 +310,6 @@ deficiency_info = {
             "advice": ["అధిక నీరు ఇవ్వవద్దు"]
         }
     },
-
     "mg": {
         "English": {
             "name": "Magnesium Deficiency",
@@ -258,7 +334,6 @@ deficiency_info = {
                 "Ensure balanced nutrients"
             ]
         },
-
         "Marathi": {
             "name": "मॅग्नेशियम कमतरता",
             "description": [
@@ -272,7 +347,6 @@ deficiency_info = {
             "solution": ["मॅग्नेशियम सल्फेट वापरा"],
             "advice": ["मातीचा pH सांभाळा"]
         },
-
         "Telugu": {
             "name": "మెగ్నీషియం లోపం",
             "description": [
@@ -287,7 +361,6 @@ deficiency_info = {
             "advice": ["మట్టి pH సరిచూడండి"]
         }
     },
-
     "healthy": {
         "English": {
             "name": "Healthy Leaf",
@@ -310,7 +383,6 @@ deficiency_info = {
                 "Monitor regularly"
             ]
         },
-
         "Marathi": {
             "name": "निरोगी पान",
             "description": [
@@ -322,7 +394,6 @@ deficiency_info = {
             "solution": ["काही गरज नाही"],
             "advice": ["चांगली काळजी घ्या"]
         },
-
         "Telugu": {
             "name": "ఆరోగ్యకరమైన ఆకు",
             "description": [
@@ -336,73 +407,62 @@ deficiency_info = {
         }
     }
 }
+
 # -------------------------------
 # SESSION STATE
 # -------------------------------
 if "detected_class" not in st.session_state:
     st.session_state["detected_class"] = None
-
 if "detected_conf" not in st.session_state:
     st.session_state["detected_conf"] = None
+
 # -------------------------------
 # STEP 1: INPUT
 # -------------------------------
-st.markdown("## 📥Upload or 📷Capture Image")
+st.markdown("## 📥 Upload or 📷 Capture Image")
 
 col1, col2 = st.columns([1, 1])
 
 with col1:
     st.markdown("<div class='main-box'>", unsafe_allow_html=True)
-
     uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png"])
-
     if uploaded_file:
         st.session_state["input_image"] = Image.open(uploaded_file)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     st.markdown("<div class='main-box'>", unsafe_allow_html=True)
-
     cam_on = st.toggle("Enable Camera")
-
     if cam_on:
         camera_image = st.camera_input("Capture Image")
-
         if camera_image:
             st.session_state["input_image"] = Image.open(camera_image)
             st.success("Image Captured ✅")
-
     else:
         st.info("Camera OFF")
-
     st.markdown("</div>", unsafe_allow_html=True)
+
 # -------------------------------
 # STEP 2: DETECTION
 # -------------------------------
-st.markdown("## 🧠Detection Result")
+st.markdown("## 🧠 Detection Result")
 
 input_img = st.session_state.get("input_image", None)
 
 if input_img:
-
     if st.button("🚀 Detect Now"):
-
         img_np = np.array(input_img)
         img_np = img_np[:, :, ::-1]
         img_np = cv2.resize(img_np, (640, 640))
         img_np = cv2.GaussianBlur(img_np, (5, 5), 0)
 
         results = model(img_np, conf=0.6)
-
         result_img = results[0].plot()
         result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
 
         colA, colB = st.columns(2)
-
         with colA:
             st.image(input_img, caption="Original")
-
         with colB:
             st.image(result_img, caption="Detected")
 
@@ -410,57 +470,54 @@ if input_img:
 
         if boxes is None or len(boxes) == 0:
             st.warning("No detection 🚫")
-
         else:
             best_box = max(boxes, key=lambda x: float(x.conf[0]))
-
             st.session_state["detected_conf"] = float(best_box.conf[0])
             st.session_state["detected_class"] = model.names[int(best_box.cls[0])]
 
-            st.success(f"Detected: {st.session_state['detected_class']}")
+            st.success(
+                f"Detected: {st.session_state['detected_class']} "
+                f"(Confidence: {st.session_state['detected_conf']:.2f})"
+            )
 
+            st.markdown("### 🔍 All Detections")
+            detected = {}
+            for box in boxes:
+                cls = int(box.cls[0])
+                conf = float(box.conf[0])
+                name = model.names[cls]
+                if name not in detected or detected[name] < conf:
+                    detected[name] = conf
+
+            for name, conf in detected.items():
+                st.write(f"🌿 {name} - Confidence: {conf:.2f}")
 else:
     st.info("Upload image first")
+
 # -------------------------------
-# STEP 3: LANGUAGE (AFTER DETECTION)
+# STEP 3: LANGUAGE
 # -------------------------------
 if st.session_state["detected_class"]:
-
     st.markdown("## 🌐 Select Language")
 
     language = st.selectbox(
         "Choose Language",
         ["en", "mr", "te"],
-        format_func=lambda x: {
-            "en": "English",
-            "mr": "Marathi",
-            "te": "Telugu"
-        }[x]
+        format_func=lambda x: {"en": "English", "mr": "Marathi", "te": "Telugu"}[x]
     )
 
     detected_class = st.session_state["detected_class"]
-
-    # ✅ FIX: normalize class name
     detected_class = detected_class.lower().replace("_deficiency", "").strip()
 
     info = deficiency_info.get(detected_class)
 
     if info:
-        # ✅ FIX: language mapping
-        lang_map = {
-            "en": "English",
-            "mr": "Marathi",
-            "te": "Telugu"
-        }
-
+        lang_map = {"en": "English", "mr": "Marathi", "te": "Telugu"}
         selected_lang = lang_map.get(language, "English")
-
-        # ✅ FIX: correct data access
         data = info.get(selected_lang, info["English"])
 
         st.markdown(f"## 🌿 {data['name']}")
 
-        # ✅ FIXED HERE (no index numbers now)
         for d in data.get("description", []):
             st.write(f"• {d}")
 
@@ -475,9 +532,7 @@ if st.session_state["detected_class"]:
         st.markdown("### 📌 Advice")
         for a in data.get("advice", []):
             st.write(f"• {a}")
-
     else:
         st.warning("Low confidence detection ⚠️")
-
 else:
     st.info("👆 Upload or capture an image first")
