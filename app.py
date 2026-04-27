@@ -4,7 +4,6 @@ import streamlit as st
 from ultralytics import YOLO
 from PIL import Image
 import base64
-import os
 
 # -------------------------------
 # PAGE CONFIG
@@ -16,7 +15,7 @@ st.set_page_config(
 )
 
 # -------------------------------
-# BACKGROUND IMAGE FUNCTION (FIXED)
+# BACKGROUND IMAGE
 # -------------------------------
 def get_base64_image(image_path):
     with open(image_path, "rb") as f:
@@ -24,36 +23,17 @@ def get_base64_image(image_path):
 
 def set_background(image_file):
     try:
-        img_base64 = get_base64_image(image_file)
-
+        img = get_base64_image(image_file)
         st.markdown(f"""
         <style>
         .stApp {{
-            background-image: url("data:image/jpg;base64,{img_base64}");
+            background-image: url("data:image/jpg;base64,{img}");
             background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }}
-
-        .stApp::before {{
-            content: "";
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.60);
-            z-index: 0;
-        }}
-
-        .main .block-container {{
-            position: relative;
-            z-index: 1;
         }}
         </style>
         """, unsafe_allow_html=True)
-
-    except Exception as e:
-        st.warning("⚠️ Background image not found. Using fallback color.")
+    except:
         st.markdown("""
         <style>
         .stApp {
@@ -62,39 +42,12 @@ def set_background(image_file):
         </style>
         """, unsafe_allow_html=True)
 
-# ✅ IMPORTANT CHANGE HERE 👇
-set_background("Agriculture.jpg")   # image same folder me rakho
+set_background("Agriculture.jpg")
 
 # -------------------------------
-# UI DESIGN (same as yours)
+# TITLE
 # -------------------------------
-st.markdown("""
-<style>
-.main-title {
-    text-align: center;
-    font-size: 48px;
-    font-weight: 700;
-    color: #fff;
-}
-.sub-title {
-    text-align: center;
-    color: #e0e0e0;
-    font-size: 18px;
-}
-.main-box {
-    background: rgba(255,255,255,0.10);
-    padding: 25px;
-    border-radius: 20px;
-    backdrop-filter: blur(8px);
-}
-</style>
-""", unsafe_allow_html=True)
-
-# -------------------------------
-# HEADER
-# -------------------------------
-st.markdown("<div class='main-title'>🌿 AI-Based Palm Leaf Detection</div>", unsafe_allow_html=True)
-st.markdown("<div class='sub-title'>AI Powered Crop Health Analysis using YOLOv8</div>", unsafe_allow_html=True)
+st.title("🌿 AI-Based Leaf Detection System")
 
 # -------------------------------
 # LOAD MODEL
@@ -106,35 +59,108 @@ def load_model():
 model = load_model()
 
 # -------------------------------
-# IMAGE INPUT
+# DEFICIENCY DATA
 # -------------------------------
-st.markdown("## 📥 Upload Image")
+data = {
+    "nitrogen": {
+        "English": {
+            "name": "Nitrogen Deficiency",
+            "symptoms": ["Yellow leaves", "Slow growth"],
+            "solution": ["Apply urea fertilizer", "Use compost"],
+            "advice": ["Check soil regularly"]
+        },
+        "Telugu": {
+            "name": "నైట్రోజన్ లోపం",
+            "symptoms": ["ఆకులు పసుపు రంగులో మారడం"],
+            "solution": ["యూరియా వేయండి"],
+            "advice": ["మట్టి పరీక్ష చేయండి"]
+        },
+        "Marathi": {
+            "name": "नायट्रोजन कमतरता",
+            "symptoms": ["पाने पिवळी होतात"],
+            "solution": ["युरिया वापरा"],
+            "advice": ["माती तपासा"]
+        }
+    },
+    "healthy": {
+        "English": {
+            "name": "Healthy Leaf",
+            "symptoms": ["Green leaves"],
+            "solution": ["No action needed"],
+            "advice": ["Maintain care"]
+        },
+        "Telugu": {
+            "name": "ఆరోగ్యకరమైన ఆకు",
+            "symptoms": ["పచ్చని ఆకులు"],
+            "solution": ["ఏ చర్య అవసరం లేదు"],
+            "advice": ["మంచి సంరక్షణ"]
+        },
+        "Marathi": {
+            "name": "निरोगी पान",
+            "symptoms": ["हिरवी पाने"],
+            "solution": ["काही गरज नाही"],
+            "advice": ["काळजी घ्या"]
+        }
+    }
+}
 
-uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png"])
+# -------------------------------
+# UPLOAD IMAGE
+# -------------------------------
+st.subheader("📥 Upload Image")
+file = st.file_uploader("Choose Image", type=["jpg", "png"])
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image")
+if file:
+    img = Image.open(file)
+    st.image(img, caption="Uploaded Image")
 
     if st.button("🚀 Detect"):
-        img_np = np.array(image)
+        img_np = np.array(img)
         img_np = img_np[:, :, ::-1]
 
         results = model(img_np)
-        result_img = results[0].plot()
-        result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
+        res_img = results[0].plot()
+        res_img = cv2.cvtColor(res_img, cv2.COLOR_BGR2RGB)
 
-        st.image(result_img, caption="Detected Image")
+        st.image(res_img, caption="Result")
 
         boxes = results[0].boxes
+
         if boxes and len(boxes) > 0:
             best = max(boxes, key=lambda x: float(x.conf[0]))
             label = model.names[int(best.cls[0])]
             conf = float(best.conf[0])
 
             st.success(f"Detected: {label} ({conf:.2f})")
+
+            # -------------------------------
+            # LANGUAGE SELECT
+            # -------------------------------
+            lang = st.selectbox("Select Language", ["English", "Telugu", "Marathi"])
+
+            key = label.lower().replace("_deficiency", "")
+
+            if key in data:
+                info = data[key][lang]
+
+                st.markdown(f"## 🌿 {info['name']}")
+
+                st.markdown("### 🔍 Symptoms")
+                for s in info["symptoms"]:
+                    st.write("•", s)
+
+                st.markdown("### 💊 Solution")
+                for s in info["solution"]:
+                    st.write("•", s)
+
+                st.markdown("### 📌 Advice")
+                for a in info["advice"]:
+                    st.write("•", a)
+            else:
+                st.warning("No detailed info available")
+
         else:
-            st.warning("No detection found ❌")
+            st.warning("No detection ❌")
 
 else:
     st.info("Upload image first")
