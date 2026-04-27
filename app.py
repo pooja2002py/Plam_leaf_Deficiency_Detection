@@ -73,7 +73,7 @@ def set_background(image_path):
 #   set_background("agriculture.jpg")
 #   set_background("C:\\mydesktop\\Final_OD\\background\\agriculture.jpg")
 
-set_background("object_detection\Agriculture.jpg")   # <-- Change this to your image filename/path
+set_background("Agriculture.jpg")   # <-- Change this to your image filename/path
 
 # -------------------------------
 # UI DESIGN
