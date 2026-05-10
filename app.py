@@ -136,7 +136,7 @@ st.markdown("""
 # -------------------------------
 # HEADER
 # -------------------------------
-st.markdown("<div class='main-title'>🌿 AI-Based Palm Leaf Detection</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-title'>🌿 AI-Based Plam Leaf Nutrient Deficiency Detection System</div>", unsafe_allow_html=True)
 st.markdown("<div class='sub-title'>AI Powered Crop Health Analysis using YOLOv8</div>", unsafe_allow_html=True)
 
 # -------------------------------
